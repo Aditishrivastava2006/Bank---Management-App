@@ -1,102 +1,61 @@
 import streamlit as st
-from pathlib import Path
-import os
-import shutil
 
-st.set_page_config(page_title="File Manager", layout="centered")
-
-st.title("📁 File & Folder Manager")
-
-# ================= FUNCTIONS ================= #
-
-def list_items():
-    p = Path('.')
-    return [item for item in p.iterdir()]
-
-def create_folder(name):
-    p = Path(name)
-    if not p.exists():
-        p.mkdir()
-        return "Folder created successfully ✅"
-    return "Folder already exists ❌"
-
-def delete_folder(name):
-    p = Path(name)
-    if p.exists() and p.is_dir():
-        shutil.rmtree(p)
-        return "Folder deleted successfully 🗑️"
-    return "No such folder ❌"
-
-def create_file(name, data):
-    p = Path(name)
-    if not p.exists():
-        with open(p, "w") as f:
-            f.write(data)
-        return "File created successfully ✅"
-    return "File already exists ❌"
-
-def read_file(name):
-    p = Path(name)
-    if p.exists() and p.is_file():
-        return p.read_text()
-    return "No such file ❌"
-
-def delete_file(name):
-    p = Path(name)
-    if p.exists() and p.is_file():
-        os.remove(p)
-        return "File deleted successfully 🗑️"
-    return "No such file ❌"
-
-# ================= UI ================= #
-
-menu = st.sidebar.selectbox(
-    "Select Operation",
-    [
-        "List Files/Folders",
-        "Create Folder",
-        "Delete Folder",
-        "Create File",
-        "Read File",
-        "Delete File"
-    ]
+# ---------- Page Config ----------
+st.set_page_config(
+    page_title="Bank Management App",
+    page_icon="🏦",
+    layout="centered"
 )
 
-# -------- LIST -------- #
-if menu == "List Files/Folders":
-    st.subheader("📄 Files & 📁 Folders")
-    for item in list_items():
-        st.write(item)
+# ---------- Session State ----------
+if "balance" not in st.session_state:
+    st.session_state.balance = 0
 
-# -------- CREATE FOLDER -------- #
-elif menu == "Create Folder":
-    name = st.text_input("Enter folder name")
-    if st.button("Create Folder"):
-        st.success(create_folder(name))
+if "history" not in st.session_state:
+    st.session_state.history = []
 
-# -------- DELETE FOLDER -------- #
-elif menu == "Delete Folder":
-    name = st.text_input("Enter folder name to delete")
-    if st.button("Delete Folder"):
-        st.warning(delete_folder(name))
+# ---------- UI ----------
+st.title("🏦 Bank Management System")
+st.caption("Mini Project using Streamlit (College Project)")
 
-# -------- CREATE FILE -------- #
-elif menu == "Create File":
-    name = st.text_input("Enter file name with extension")
-    data = st.text_area("Write content")
-    if st.button("Create File"):
-        st.success(create_file(name, data))
+st.divider()
 
-# -------- READ FILE -------- #
-elif menu == "Read File":
-    name = st.text_input("Enter file name to read")
-    if st.button("Read File"):
-        st.code(read_file(name))
+st.metric("💰 Current Balance", f"₹ {st.session_state.balance}")
 
-# -------- DELETE FILE -------- #
-elif menu == "Delete File":
-    name = st.text_input("Enter file name to delete")
-    if st.button("Delete File"):
-        st.warning(delete_file(name))
+amount = st.number_input(
+    "Enter Amount",
+    min_value=0,
+    step=100
+)
 
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("➕ Deposit", use_container_width=True):
+        st.session_state.balance += amount
+        st.session_state.history.append(f"Deposited ₹{amount}")
+        st.success(f"₹{amount} deposited successfully!")
+
+with col2:
+    if st.button("➖ Withdraw", use_container_width=True):
+        if amount <= st.session_state.balance:
+            st.session_state.balance -= amount
+            st.session_state.history.append(f"Withdrawn ₹{amount}")
+            st.success(f"₹{amount} withdrawn successfully!")
+        else:
+            st.error("❌ Insufficient Balance")
+
+st.divider()
+
+# ---------- Transaction History ----------
+st.subheader("📜 Transaction History")
+
+if st.session_state.history:
+    for i, item in enumerate(st.session_state.history, 1):
+        st.write(f"{i}. {item}")
+else:
+    st.info("No transactions yet.")
+
+st.divider()
+st.caption("👩‍🎓 College Mini Project | Streamlit App")
        
