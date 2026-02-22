@@ -1,145 +1,188 @@
-import os 
 from pathlib import Path
+import json
+import random
+import string
 
-def createfolder():
-    name = input("please tell your folder name: ")
-    p = Path(name)
-    if not p.exists():
-        p.mkdir()
-    else:
-        print("folder name already exists ")
+class Bank:
+    database = "data.json"
+    data = [] #Yeh data json mr save hoga
 
-def listingfoldersandfile():
-    p = Path('')
-    items = list(p.rglob('*'))
-    for i,v in enumerate(items):
-        print(f"{i+1} : {v}")
+    try:
+        if Path(database).exists():
+            print("File exists")
+            with open(database) as fs:
+                data = json.loads(fs.read())
 
-def updatefolder():
-    listingfoldersandfile()
-    oname = input("which folder you want to update : ")
-    old_p = Path(oname)
-    if old_p.exists():
-        n_name = input("tell folders new name: ")
-        new_p = Path(n_name)
-        if not new_p.exists():
-            old_p.rename(new_p)
         else:
-            print("this name folder already exist ")
+            print("No such files exists...") 
 
-    else:
-        print("no such folder name exists ")
+    except Exception as err:
+        print("Error ocurred!!")
 
-def deletefolder():
-    listingfoldersandfile()
-    name = input("which folder you want to delete: ")
-    p = Path(name)
-    if p.exists():
-        p.rmdir()
-    else:
-        print("no such folder exists ")
+    @classmethod
+    def update(cls):
+        with open(Bank.database,'w') as fs:
+            fs.write(json.dumps(cls.data))  
 
-def createfile():
-    name = input("tell your file name with extension :- ")
-    p = Path(name)
-    if not p.exists():
-        with open(p,"w") as file:
-            data = input("what you want to write inside :- ")
-            file.write(data)
-            print("created successfully ")
-    else:
-        print("this file already exists ")
+    @staticmethod
+    def generateAcc():
+        digits = random.choices(string.digits,k=4)
+        alpha = random.choices(string.ascii_letters,k=4)
+        id = digits+alpha
+        random.shuffle(id)
+        return "".join(id)
     
-def readfile():
-    listingfoldersandfile()
-    name = input("which file you want to read write with extension :- ")
-    p = Path(name)
-    if p.exists and p.is_file():
-        with open(p,'r') as file:
-            data = file.read()
-            print(data)
-        print("file read successfull")
-    else:
-        print("no such file exists")
-        
-def updatefile():
-    listingfoldersandfile()
-    name = input("which file you want to update :- ")
-    p = Path(name)
-    if p.exists() and p.is_file():
-        print("press 1 for updating the file name :- ")
-        print("press 2 for overwriting the content :- ")
-        print("press 3 for appending in file :- ")
-        check = int(input("tell your response :- "))
-        if check == 1:
-            new_name = input("tell your new name :- ")
-            new_p = Path(new_name)
-            if not new_p.exists():
-                p.rename(new_p)
-                print("name updated successfully ")
+    def depositeMoney(self):
+        AccountNo = input("Enter your account number : ")
+        Pin = int(input("Enter your pin : "))
+
+        user_data = [i for i in Bank.data if i['account_no']==AccountNo and i['pin']==Pin]
+        if user_data == False:
+            print("User not found")
+        else:
+            amount = int(input("Enter amount : "))
+            if amount<=0:
+                print("Invalid amount!!!")  
+            elif amount>10000:      
+                print("Invalid amount!!!")    
             else:
-                print("this name already exists ")
-        if check == 2:
-            with open(p,'w') as file:
-                data = input("what you want to overwrite :- ")
-                file.write(data)
-                print("updated successfully")
-        if check == 3:
-            with open(p,'a') as file:
-                data = input("what you want to append :- ")
-                file.write(" "+ data)
-                print("updated successfully")
-    else:
-        print("no such file exists ")
+                user_data[0]['balance'] += amount
+                print("Amount credited....")
+                Bank.update()  
+    def withdrawMoney(self):
+        AccountNo = input("Enter your account number : ")
+        Pin = int(input("Enter your pin : "))
 
-def deletefile():
-    listingfoldersandfile()
-    name = input("which file you want to delete:- ")
-    p = Path(name)
-    if p.exists() and p.is_file():
-        os.remove(p)
-        print("file deleted successfully")
-    else:
-        print("no such file exists ")
+        user_data = [i for i in Bank.data if i['account_no']==AccountNo and i['pin']==Pin]
+        if user_data == False:
+            print("User not found")
+        else:
+            amount = int(input("Enter amount : "))
+            if amount<=0:
+                print("Invalid amount!!!")  
+            elif amount>10000:      
+                print("Greater than 10000")    
+            else:
+                if user_data[0]['balance'] < amount:
+                    print("Insufficiant funds...")
+                else:
+                    user_data[0]['balance'] -= amount
+                    Bank.update()
+                    print("Amount debited....")  
+    def details(self):
+        AccountNo = input("Enter your account number : ")
+        Pin = int(input("Enter your pin : "))
+        user_data = [i for i in Bank.data if i['account_no']==AccountNo and i['pin']==Pin]
+        if user_data == False:
+            print("User not found")
+        else:
+            for i in user_data[0]:
+                print(i,user_data[0][i])    
 
 
 
-while True:
-    print("press 1 for creating a folder")
-    print("press 2 for Listing files and folders")
-    print("press 3 for updating a folder name")
-    print("press 4 for deleting a folder ")
-    print("press 5 for creating a file")
-    print("press 6 for reading a file ")
-    print("press 7 for updating a file")
-    print("press 8 for deleting a file")
-    print("press 0 to exit the application ")
+    #Create user
+    def CreateAccount(self):
+        info = {
+            'name' : input("Enter your name : "),
+            'age' : int(input("Enter your age : ")),
+            'phoneNo': int(input("Enter your contact no.. : ")),
+            'email' : input("Enter your Email : "),
+            'pin' : int(input("Enter your pin : ")),
+            'account_no' : Bank.generateAcc(),
+            'balance' : 0
+        }
+        if info['age'] > 18 and len(str(info['pin'])) ==4 and len(str(info['phoneNo'])) == 10:
+            Bank.data.append(info)
+            Bank.update()
+            print("Data added in list..")
+            print(Bank.data)
+        else:
+            print("Credentials are not valid!!")   
 
-    res = int(input("tell your response:- "))
+    def deleteAccount(self):
+        accountno = input("Enter your account no. : ")
+        pin = int(input("Enter your 4 digit pin : "))
 
-    if res == 1:
-        createfolder()
+        user_data = [i for i in Bank.data if i['account_no'] == accountno and i['pin'] == pin]
+        if user_data == False:
+            print("User not Found")
+        else:
+            print("Are you sure you want to delete your acccount? (Yes/No) : ")
+            choice = input()
 
-    if res == 2:
-        listingfoldersandfile()
+            if choice == 'Yes':
+                ind = Bank.data.index(user_data[0])
+                Bank.data.pop(ind)
+                Bank.update()
+                print("Account delete successfully")
+            else:
+                print("Operation Terminated")
 
-    if res == 3:
-        updatefolder()
+    def updateDetails(self):
+        AccountNo = input("Enter your account number : ")
+        Pin = int(input("Enter your pin : "))
+        user_data = [i for i in Bank.data if i['account_no']==AccountNo and i['pin']==Pin]
+        if user_data == False:
+            print("User not found")
+        else:
+            print("Aap Account number or balance update nahi kar sakte!!!")
 
-    if res == 4:
-        deletefolder()
+            print("Enter your details to update or just press enter to skip them")
 
-    if res == 5:
-        createfile()
+            new_data = {
+                'name' : input("Enter your name : "),
+                'phoneNo': (input("Enter your contact no.. : ")),
+                'email' : input("Enter your Email : "),
+                'pin' : (input("Enter your pin : ")),
 
-    if res == 6:
-        readfile()
+            }     
 
-    if res == 7:
-        updatefile()
+            if new_data['name'] == "":
+                new_data['name'] = user_data[0]['name']                
+            if new_data['phoneNo'] == "":
+                new_data['phoneNo'] = user_data[0]['phoneNo']   
+            else:
+                new_data['phoneNo']  = int(new_data['phoneNo'])                
+            if new_data['email'] == "":
+                new_data['email'] = user_data[0]['email']                
+            if new_data['pin'] == "":
+                new_data['pin'] = user_data[0]['pin'] 
+            else:
+                new_data['pin']  = int(new_data['pin'])   
 
-    if res == 8:
-        deletefile()
-    
-    if res == 0:
-        break
+            new_data['AccountNo'] = user_data[0]['account_no']
+            new_data['balance'] = user_data[0]['balance']    
+
+            user_data[0].update(new_data)
+            Bank.update()  
+            print("Details are updated('_')")              
+
+
+obj = Bank()
+print("Press 1 for Creating Account")
+print("Press 2 for Depositing Money")
+print("Press 3 for Withdrawing Money")
+print("Press 4 for Account Details")
+print("Press 5 for Updating Account Details")
+print("Press 6 for Deleting Account")
+
+choice = int(input("Enter your Choice : "))
+
+if choice == 1:
+    obj.CreateAccount()
+
+elif choice == 2:
+    obj.depositeMoney()
+
+elif choice == 3:
+    obj.withdrawMoney()
+
+elif choice == 4:
+    obj.details()
+
+elif choice == 5:
+    obj.updateDetails()
+
+elif choice == 6:
+    obj.deleteAccount()
