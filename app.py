@@ -1,61 +1,141 @@
 import streamlit as st
+from pathlib import Path
+import json
+import random
+import string
 
-# ---------- Page Config ----------
-st.set_page_config(
-    page_title="Bank Management App",
-    page_icon="🏦",
-    layout="centered"
-)
+# ================= BANK CLASS =================
+class Bank:
+    database = "data.json"
+    data = []
 
-# ---------- Session State ----------
-if "balance" not in st.session_state:
-    st.session_state.balance = 0
+    # Load data
+    if Path(database).exists():
+        with open(database, "r") as fs:
+            data = json.load(fs)
+    else:
+        data = []
 
-if "history" not in st.session_state:
-    st.session_state.history = []
+    @classmethod
+    def update(cls):
+        with open(cls.database, "w") as fs:
+            json.dump(cls.data, fs, indent=4)
 
-# ---------- UI ----------
+    @staticmethod
+    def generateAcc():
+        digits = random.choices(string.digits, k=4)
+        alpha = random.choices(string.ascii_letters, k=4)
+        acc = digits + alpha
+        random.shuffle(acc)
+        return "".join(acc)
+
+bank = Bank()
+
+# ================= STREAMLIT UI =================
+st.set_page_config(page_title="Bank App", page_icon="🏦")
 st.title("🏦 Bank Management System")
-st.caption("Mini Project using Streamlit (College Project)")
 
-st.divider()
-
-st.metric("💰 Current Balance", f"₹ {st.session_state.balance}")
-
-amount = st.number_input(
-    "Enter Amount",
-    min_value=0,
-    step=100
+menu = st.sidebar.selectbox(
+    "Select Operation",
+    ["Create Account", "Deposit Money", "Withdraw Money", "Account Details", "Delete Account"]
 )
 
-col1, col2 = st.columns(2)
+# ================= CREATE ACCOUNT =================
+if menu == "Create Account":
+    st.header("🆕 Create Account")
 
-with col1:
-    if st.button("➕ Deposit", use_container_width=True):
-        st.session_state.balance += amount
-        st.session_state.history.append(f"Deposited ₹{amount}")
-        st.success(f"₹{amount} deposited successfully!")
+    name = st.text_input("Name")
+    age = st.number_input("Age", min_value=1)
+    phone = st.text_input("Phone Number")
+    email = st.text_input("Email")
+    pin = st.text_input("4 Digit PIN", type="password")
 
-with col2:
-    if st.button("➖ Withdraw", use_container_width=True):
-        if amount <= st.session_state.balance:
-            st.session_state.balance -= amount
-            st.session_state.history.append(f"Withdrawn ₹{amount}")
-            st.success(f"₹{amount} withdrawn successfully!")
+    if st.button("Create Account"):
+        if age > 18 and len(pin) == 4 and len(phone) == 10:
+            acc_no = Bank.generateAcc()
+            info = {
+                "name": name,
+                "age": age,
+                "phoneNo": int(phone),
+                "email": email,
+                "pin": int(pin),
+                "account_no": acc_no,
+                "balance": 0
+            }
+            Bank.data.append(info)
+            Bank.update()
+
+            st.success("✅ Account Created Successfully")
+            st.info(f"Your Account Number: {acc_no}")
         else:
+            st.error("❌ Invalid Details")
+
+# ================= DEPOSIT =================
+elif menu == "Deposit Money":
+    st.header("💰 Deposit Money")
+
+    acc = st.text_input("Account Number")
+    pin = st.text_input("PIN", type="password")
+    amount = st.number_input("Amount", min_value=1, max_value=10000)
+
+    if st.button("Deposit"):
+        user = [i for i in Bank.data if i["account_no"] == acc and i["pin"] == int(pin)]
+
+        if not user:
+            st.error("❌ User not found")
+        else:
+            user[0]["balance"] += amount
+            Bank.update()
+            st.success("✅ Amount Credited")
+
+# ================= WITHDRAW =================
+elif menu == "Withdraw Money":
+    st.header("💸 Withdraw Money")
+
+    acc = st.text_input("Account Number")
+    pin = st.text_input("PIN", type="password")
+    amount = st.number_input("Amount", min_value=1, max_value=10000)
+
+    if st.button("Withdraw"):
+        user = [i for i in Bank.data if i["account_no"] == acc and i["pin"] == int(pin)]
+
+        if not user:
+            st.error("❌ User not found")
+        elif user[0]["balance"] < amount:
             st.error("❌ Insufficient Balance")
+        else:
+            user[0]["balance"] -= amount
+            Bank.update()
+            st.success("✅ Amount Debited")
 
-st.divider()
+# ================= DETAILS =================
+elif menu == "Account Details":
+    st.header("📄 Account Details")
 
-# ---------- Transaction History ----------
-st.subheader("📜 Transaction History")
+    acc = st.text_input("Account Number")
+    pin = st.text_input("PIN", type="password")
 
-if st.session_state.history:
-    for i, item in enumerate(st.session_state.history, 1):
-        st.write(f"{i}. {item}")
-else:
-    st.info("No transactions yet.")
+    if st.button("View Details"):
+        user = [i for i in Bank.data if i["account_no"] == acc and i["pin"] == int(pin)]
 
-st.divider()
-st.caption("👩‍🎓 College Mini Project | Streamlit App")
-       
+        if not user:
+            st.error("❌ User not found")
+        else:
+            st.json(user[0])
+
+# ================= DELETE =================
+elif menu == "Delete Account":
+    st.header("🗑️ Delete Account")
+
+    acc = st.text_input("Account Number")
+    pin = st.text_input("PIN", type="password")
+
+    if st.button("Delete Account"):
+        user = [i for i in Bank.data if i["account_no"] == acc and i["pin"] == int(pin)]
+
+        if not user:
+            st.error("❌ User not found")
+        else:
+            Bank.data.remove(user[0])
+            Bank.update()
+            st.success("✅ Account Deleted Successfully")
